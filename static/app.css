@@ -67,11 +67,19 @@ body { background: var(--bg-page); color: var(--fg); overflow: hidden; }
 .app-header .u-text--muted { color: #bdbdbd; }
 .app-brand { display: flex; align-items: center; gap: .9rem; min-width: 0; }
 .app-brand > i { font-size: 1.7rem; color: #e95420; }
+.app-brand__logo { width: 42px; height: 42px; object-fit: contain; flex: 0 0 auto; display: block; }
 .app-header__actions { display: flex; align-items: center; gap: .25rem; flex-wrap: wrap; }
 .app-header .p-button--base { color: #fff; margin: 0; }
 .app-header .p-button--base:hover { background: #3a3a3a; }
 .app-header .p-chip--information { margin: 0 .5rem 0 0; }
 #btn-theme { border: 1px solid rgba(255, 255, 255, .35); min-width: 6.2rem; }
+
+/* Graph-size chip: white icon + text */
+.app-header .p-chip--information .p-chip__value,
+.app-header .p-chip--information .p-chip__value i,
+.app-header .p-chip--information #graph-size {
+  color: #fff;
+}
 
 /* ---------- main ---------- */
 .app-main { flex: 1 1 auto; display: flex; min-height: 0; }
