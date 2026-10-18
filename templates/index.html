@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UNPAM Smart Campus Navigation</title>
+
+  <!-- Pick the saved (or system) colour theme before the first paint to avoid a flash -->
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('unpam-theme'); } catch (e) {}
+      if (t !== 'light' && t !== 'dark') {
+        t = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+
+  <link rel="stylesheet" href="https://assets.ubuntu.com/v1/vanilla_framework_version_4.59.0.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}" />
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="app-header">
+    <div class="app-brand">
+      <i class="fa-solid fa-map-location-dot"></i>
+      <div>
+        <h1 class="p-heading--5 u-no-margin--bottom">UNPAM Smart Campus Navigation</h1>
+        <p class="p-text--small u-no-margin--bottom u-text--muted">Universitas Pamulang - Viktor Campus - Dijkstra 3D routing</p>
+      </div>
+    </div>
+    <div class="app-header__actions">
+      <span class="p-chip--information" title="Graph size"><span class="p-chip__value"><i class="fa-solid fa-diagram-project"></i> <span id="graph-size">--</span></span></span>
+      <button class="p-button--base is-inline u-no-margin--bottom" id="btn-bench"><i class="fa-solid fa-gauge-high"></i> Complexity test</button>
+      <button class="p-button--base is-inline u-no-margin--bottom" id="btn-about"><i class="fa-solid fa-circle-info"></i> About data</button>
+      <button class="p-button--base is-inline u-no-margin--bottom" id="btn-theme" aria-pressed="false" title="Switch between light and dark mode">
+        <i class="fa-solid fa-moon" id="theme-icon"></i> <span id="theme-text">Dark</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="app-main">
+
+    <!-- ===================== SIDEBAR ===================== -->
+    <aside class="app-side" id="sidebar">
+      <div class="p-tabs">
+        <div class="p-tabs__list" role="tablist" aria-label="Sidebar sections">
+          <div class="p-tabs__item"><button class="p-tabs__link" role="tab" aria-selected="true" aria-controls="tab-route" data-tab="route"><i class="fa-solid fa-route"></i> Route</button></div>
+          <div class="p-tabs__item"><button class="p-tabs__link" role="tab" aria-selected="false" aria-controls="tab-view" data-tab="view"><i class="fa-solid fa-cube"></i> 3D View</button></div>
+          <div class="p-tabs__item"><button class="p-tabs__link" role="tab" aria-selected="false" aria-controls="tab-legend" data-tab="legend"><i class="fa-solid fa-list"></i> Legend</button></div>
+        </div>
+      </div>
+
+      <!-- ---------- ROUTE TAB ---------- -->
+      <section class="tab-panel" id="tab-route" role="tabpanel">
+        <div class="p-notification--information is-dense u-no-margin--bottom">
+          <div class="p-notification__content">
+            <p class="p-notification__message">Search a room, use the building / floor lists, or press the crosshair button and click a room in the 3D map.</p>
+          </div>
+        </div>
+
+        <!-- START -->
+        <div class="picker" data-role="start">
+          <label class="p-form__label picker__title"><i class="fa-solid fa-location-dot picker__icon picker__icon--start"></i> From</label>
+          <div class="picker__search">
+            <div class="p-search-box">
+              <input type="search" class="p-search-box__input" placeholder="Search room, lab, office..." autocomplete="off" aria-label="Search start" />
+              <button type="button" class="p-search-box__button" tabindex="-1" aria-label="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+            <button type="button" class="p-button has-icon picker__pick" title="Pick on the 3D map" aria-label="Pick start on map"><i class="fa-solid fa-crosshairs"></i></button>
+            <ul class="p-list--divided picker__results" hidden></ul>
+          </div>
+          <div class="picker__selects">
+            <select class="p-form__control sel-building" aria-label="Start building"></select>
+            <select class="p-form__control sel-floor" aria-label="Start floor"></select>
+            <select class="p-form__control sel-room" aria-label="Start room"></select>
+          </div>
+        </div>
+
+        <div class="swap-row">
+          <button type="button" class="p-button--base has-icon u-no-margin--bottom" id="btn-swap" title="Swap start and destination"><i class="fa-solid fa-arrow-right-arrow-left fa-rotate-90"></i> Swap</button>
+        </div>
+
+        <!-- END -->
+        <div class="picker" data-role="end">
+          <label class="p-form__label picker__title"><i class="fa-solid fa-flag-checkered picker__icon picker__icon--end"></i> To</label>
+          <div class="picker__search">
+            <div class="p-search-box">
+              <input type="search" class="p-search-box__input" placeholder="Search room, lab, office..." autocomplete="off" aria-label="Search destination" />
+              <button type="button" class="p-search-box__button" tabindex="-1" aria-label="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+            <button type="button" class="p-button has-icon picker__pick" title="Pick on the 3D map" aria-label="Pick destination on map"><i class="fa-solid fa-crosshairs"></i></button>
+            <ul class="p-list--divided picker__results" hidden></ul>
+          </div>
+          <div class="picker__selects">
+            <select class="p-form__control sel-building" aria-label="Destination building"></select>
+            <select class="p-form__control sel-floor" aria-label="Destination floor"></select>
+            <select class="p-form__control sel-room" aria-label="Destination room"></select>
+          </div>
+        </div>
+
+        <label class="p-checkbox acc-toggle">
+          <input type="checkbox" class="p-checkbox__input" id="chk-access" aria-labelledby="lbl-access">
+          <span class="p-checkbox__label" id="lbl-access"><i class="fa-solid fa-wheelchair"></i> Disability-friendly route <span class="u-text--muted">(no stairs / escalators)</span></span>
+        </label>
+
+        <div class="action-row">
+          <button class="p-button--positive has-icon u-no-margin--bottom" id="btn-go"><i class="fa-solid fa-route is-light"></i><span>Find route</span></button>
+          <button class="p-button has-icon u-no-margin--bottom" id="btn-clear"><i class="fa-solid fa-eraser"></i><span>Clear</span></button>
+        </div>
+
+        <div id="route-msg" aria-live="polite"></div>
+
+        <div id="route-result" hidden>
+          <div class="stat-row">
+            <div class="stat"><i class="fa-solid fa-ruler-horizontal"></i><strong id="st-dist">0</strong><span>metres*</span></div>
+            <div class="stat"><i class="fa-solid fa-clock"></i><strong id="st-time">0</strong><span>est. time</span></div>
+            <div class="stat"><i class="fa-solid fa-layer-group"></i><strong id="st-floors">0</strong><span>floors</span></div>
+          </div>
+          <h2 class="p-heading--5 steps-title">Directions</h2>
+          <ol class="step-list" id="step-list"></ol>
+          <p class="p-text--small u-text--muted algo-note" id="algo-note"></p>
+          <p class="p-text--small u-text--muted">* Distances are estimated from the PDF layout. Lift and stairs travel are converted to metre-equivalents so Dijkstra can compare them.</p>
+        </div>
+      </section>
+
+      <!-- ---------- 3D VIEW TAB ---------- -->
+      <section class="tab-panel" id="tab-view" role="tabpanel" hidden>
+        <h2 class="p-heading--5">Camera</h2>
+        <div class="btn-grid">
+          <button class="p-button has-icon" data-cam="overview"><i class="fa-solid fa-expand"></i><span>Overview</span></button>
+          <button class="p-button has-icon" data-cam="top"><i class="fa-solid fa-arrows-up-to-line"></i><span>Top plan</span></button>
+          <button class="p-button has-icon" data-cam="front"><i class="fa-solid fa-building"></i><span>Side view</span></button>
+          <button class="p-button has-icon" data-cam="route"><i class="fa-solid fa-route"></i><span>Follow route</span></button>
+        </div>
+
+        <h2 class="p-heading--5">Floors</h2>
+        <label for="rng-spacing" class="p-form__label">Floor spacing <span id="val-spacing" class="u-text--muted">9</span></label>
+        <input type="range" id="rng-spacing" min="4" max="30" step="1" value="9" />
+
+        <label class="p-checkbox"><input type="checkbox" class="p-checkbox__input" id="chk-compact" checked aria-labelledby="l-compact"><span class="p-checkbox__label" id="l-compact">Compact stack (skip floors that have no plan)</span></label>
+        <label class="p-checkbox"><input type="checkbox" class="p-checkbox__input" id="chk-routeonly" aria-labelledby="l-routeonly"><span class="p-checkbox__label" id="l-routeonly">Fade floors not used by the route</span></label>
+        <label class="p-checkbox"><input type="checkbox" class="p-checkbox__input" id="chk-labels" checked aria-labelledby="l-labels"><span class="p-checkbox__label" id="l-labels">Room labels in single-floor view</span></label>
+        <label class="p-checkbox"><input type="checkbox" class="p-checkbox__input" id="chk-rotate" aria-labelledby="l-rotate"><span class="p-checkbox__label" id="l-rotate">Auto-rotate</span></label>
+        <label class="p-checkbox"><input type="checkbox" class="p-checkbox__input" id="chk-follow" checked aria-labelledby="l-follow"><span class="p-checkbox__label" id="l-follow">Animated walker on the route</span></label>
+
+        <div class="p-notification--information is-dense">
+          <div class="p-notification__content">
+            <p class="p-notification__message" id="scale-note">Room layout follows the PDF plans.</p>
+          </div>
+        </div>
+        <p class="p-text--small u-text--muted">Tip: use the floor rail on the right of the map to isolate one floor and see every room name, laid out like the PDF. Left-drag rotates, right-drag pans, scroll zooms.</p>
+      </section>
+
+      <!-- ---------- LEGEND TAB ---------- -->
+      <section class="tab-panel" id="tab-legend" role="tabpanel" hidden>
+        <h2 class="p-heading--5">Room types</h2>
+        <ul class="p-list legend" id="legend-list"></ul>
+        <h2 class="p-heading--5">Route colours</h2>
+        <ul class="p-list legend">
+          <li class="p-list__item"><span class="swatch swatch--walk"></span> Walking</li>
+          <li class="p-list__item"><span class="swatch" style="background:#f99b11"></span> Lift / stairs / escalator</li>
+          <li class="p-list__item"><span class="swatch" style="background:#0e8420"></span> Start</li>
+          <li class="p-list__item"><span class="swatch" style="background:#c7162b"></span> Destination</li>
+        </ul>
+      </section>
+    </aside>
+
+    <!-- ===================== 3D STAGE ===================== -->
+    <section class="app-stage" id="stage">
+      <div id="viewport" aria-label="3D campus map"></div>
+
+      <div class="stage-banner" id="pick-banner" hidden>
+        <i class="fa-solid fa-crosshairs"></i> <span id="pick-text">Click a room</span>
+        <button class="p-button--base is-dense u-no-margin--bottom" id="pick-cancel">Cancel</button>
+      </div>
+
+      <div class="floor-rail" id="floor-rail" aria-label="Floor selector">
+        <div class="rail-title"><i class="fa-solid fa-layer-group"></i></div>
+        <div class="rail-buildings" id="rail-buildings"></div>
+        <div class="rail-floors" id="rail-floors"></div>
+      </div>
+
+      <div class="compass" title="In Top plan the map is oriented like the PDF pages"><i class="fa-solid fa-arrow-up"></i><span>PDF top</span></div>
+
+      <div class="tooltip" id="tooltip" hidden></div>
+
+      <div class="select-card p-card" id="select-card" hidden>
+        <div class="select-card__head">
+          <h3 class="p-heading--5 u-no-margin--bottom" id="sc-title"></h3>
+          <button class="p-button--base is-dense has-icon u-no-margin--bottom" id="sc-close" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <p class="p-text--small u-text--muted" id="sc-sub"></p>
+        <div class="action-row">
+          <button class="p-button--positive is-dense has-icon u-no-margin--bottom" id="sc-start"><i class="fa-solid fa-location-dot is-light"></i><span>Start here</span></button>
+          <button class="p-button is-dense has-icon u-no-margin--bottom" id="sc-end"><i class="fa-solid fa-flag-checkered"></i><span>Go here</span></button>
+        </div>
+      </div>
+
+      <div id="loading" class="loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading campus model...</div>
+    </section>
+  </main>
+</div>
+
+<!-- ===================== MODALS ===================== -->
+<div class="p-modal" id="modal-bench" style="display:none">
+  <div class="p-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="bench-title">
+    <header class="p-modal__header">
+      <h2 class="p-modal__title" id="bench-title"><i class="fa-solid fa-gauge-high"></i> Empirical complexity analysis</h2>
+      <button class="p-modal__close" data-close aria-label="Close active modal">Close</button>
+    </header>
+    <div id="bench-body"><p><i class="fa-solid fa-circle-notch fa-spin"></i> Running benchmark...</p></div>
+  </div>
+</div>
+
+<div class="p-modal" id="modal-about" style="display:none">
+  <div class="p-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="about-title">
+    <header class="p-modal__header">
+      <h2 class="p-modal__title" id="about-title"><i class="fa-solid fa-circle-info"></i> About the campus data</h2>
+      <button class="p-modal__close" data-close aria-label="Close active modal">Close</button>
+    </header>
+    <p><strong>Layout:</strong> every room box is copied from the floor-plan PDF (Gedung A floors 1-6, Gedung B floors 2-7 and 9 including the rear "Belakang" wings, Gedung C floors 8, 11 and 12). Positions, widths, depths and labels are the PDF's.</p>
+    <p><strong>Estimated size:</strong> the PDF has no scale, so box sizes are converted to metres with one factor per plan type. A typical classroom comes out at about 7 x 9 m. Change <code>S_MAIN</code> and <code>S_WING</code> in <code>campus_data.py</code> to re-scale.</p>
+    <p><strong>Generated:</strong> corridors (the free space between rooms, turned into a 2 m walking grid), the door of each room, lift / stairs connections between floors, the ground floors of Gedung B and C (no plan in the PDF), the lobbies and the outdoor walkway from the Main Gate.</p>
+    <p class="u-no-margin--bottom" id="about-assumed"></p>
+  </div>
+</div>
+
+<script type="module" src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
