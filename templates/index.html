@@ -21,6 +21,90 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}" />
 
+  <!-- ===== Header: UNPAM logo + responsive layout ===== -->
+  <style>
+    .app-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: .75rem 1rem;
+    }
+
+    .app-brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      min-width: 0;              /* lets the text truncate instead of pushing the buttons off-screen */
+    }
+
+    .app-brand__logo {
+      display: block;
+      flex: 0 0 auto;
+      width: 42px;
+      height: 42px;
+      object-fit: contain;
+    }
+
+    .app-brand__text { min-width: 0; }
+
+    .app-brand__text > h1,
+    .app-brand__text > p {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .app-header__actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: .35rem;
+      margin-left: auto;
+    }
+
+    .app-header__actions .p-button--base {
+      margin: 0;
+      white-space: nowrap;
+    }
+
+    /* ---- Tablet / small laptop ---- */
+    @media (max-width: 900px) {
+      .app-brand__logo { width: 36px; height: 36px; }
+      .app-brand__text > h1 { font-size: 1rem; line-height: 1.25; }
+      .app-brand__text > p  { font-size: .75rem; }
+    }
+
+    /* ---- Phones: brand on line 1, compact icon buttons on line 2 ---- */
+    @media (max-width: 720px) {
+      .app-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: .5rem;
+        padding: .5rem .75rem;
+      }
+      .app-brand { gap: .6rem; }
+      .app-header__actions {
+        width: 100%;
+        margin-left: 0;
+        justify-content: space-between;
+        gap: .25rem;
+      }
+      .app-header__actions .p-button--base {
+        min-height: 38px;                 /* comfortable tap target */
+        padding: .35rem .6rem;
+      }
+      .app-header__actions .btn-label,
+      .app-header__actions #theme-text { display: none; }   /* icons only, labels kept in title/aria-label */
+    }
+
+    /* ---- Very small phones ---- */
+    @media (max-width: 400px) {
+      .app-brand__text > p { display: none; }              /* keep only the title */
+      .app-brand__text > h1 { white-space: normal; }
+    }
+  </style>
+
   <script type="importmap">
   {
     "imports": {
@@ -36,17 +120,20 @@
   <!-- ===================== HEADER ===================== -->
   <header class="app-header">
     <div class="app-brand">
-      <i class="fa-solid fa-map-location-dot"></i>
-      <div>
+      <img class="app-brand__logo"
+           src="https://unpam.ac.id/_nuxt/logo-unpam-300x291.DBvGUDu1.png"
+           alt="Universitas Pamulang logo"
+           width="42" height="42" decoding="async" />
+      <div class="app-brand__text">
         <h1 class="p-heading--5 u-no-margin--bottom">UNPAM Smart Campus Navigation</h1>
         <p class="p-text--small u-no-margin--bottom u-text--muted">Universitas Pamulang - Viktor Campus - Dijkstra 3D routing</p>
       </div>
     </div>
     <div class="app-header__actions">
       <span class="p-chip--information" title="Graph size"><span class="p-chip__value"><i class="fa-solid fa-diagram-project"></i> <span id="graph-size">--</span></span></span>
-      <button class="p-button--base is-inline u-no-margin--bottom" id="btn-bench"><i class="fa-solid fa-gauge-high"></i> Complexity test</button>
-      <button class="p-button--base is-inline u-no-margin--bottom" id="btn-about"><i class="fa-solid fa-circle-info"></i> About data</button>
-      <button class="p-button--base is-inline u-no-margin--bottom" id="btn-theme" aria-pressed="false" title="Switch between light and dark mode">
+      <button class="p-button--base is-inline u-no-margin--bottom" id="btn-bench" title="Complexity test" aria-label="Complexity test"><i class="fa-solid fa-gauge-high"></i> <span class="btn-label">Complexity test</span></button>
+      <button class="p-button--base is-inline u-no-margin--bottom" id="btn-about" title="About data" aria-label="About data"><i class="fa-solid fa-circle-info"></i> <span class="btn-label">About data</span></button>
+      <button class="p-button--base is-inline u-no-margin--bottom" id="btn-theme" aria-pressed="false" title="Switch between light and dark mode" aria-label="Switch between light and dark mode">
         <i class="fa-solid fa-moon" id="theme-icon"></i> <span id="theme-text">Dark</span>
       </button>
     </div>
